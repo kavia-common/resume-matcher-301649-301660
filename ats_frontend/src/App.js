@@ -73,7 +73,8 @@ function App() {
     } catch (e) {
       const message =
         (e && e.message) || 'An unexpected error occurred while contacting the server.';
-      setError(message);
+      const guidance = ' If this persists, confirm the backend is running at the API URL above and that CORS is enabled.';
+      setError(message + guidance);
     } finally {
       setLoading(false);
       abortControllerRef.current = null;

@@ -14,17 +14,17 @@ This is a lightweight React frontend for uploading a resume (PDF/DOCX), pasting 
 - Build: `npm run build`
 
 ## Backend URL configuration
-The frontend calls `POST /match` on the backend. By default it uses:
-- `http://localhost:3001` (shown in the header as "API: ...").
+The frontend calls `POST /match` on the backend. URL resolution order:
+1. `REACT_APP_BACKEND_URL` environment variable (explicit override)
+2. Auto-detect preview: same protocol/host as the frontend with port `3001`
+3. Fallback to `http://localhost:3001`
 
-To override, set an environment variable before running:
-- Create a `.env` file in this folder with:
-  ```
-  REACT_APP_BACKEND_URL=http://localhost:3001
-  ```
-  Or export it in your shell environment.
+The resolved URL is shown in the header as "API: ...".
 
-If `.env` is absent, the app still works with the default `http://localhost:3001`.
+To explicitly set a URL, create a `.env` file in this folder (see `.env.example`) or export the variable in your shell:
+```
+REACT_APP_BACKEND_URL=http://localhost:3001
+```
 
 ## API Contract
 `POST /match` (multipart/form-data):
@@ -40,6 +40,11 @@ Expected response (application/json):
   "feedback": ["..."]
 }
 ```
+
+## Troubleshooting
+- CORS/Network errors: Ensure the backend is running on port 3001 and CORS is enabled on the FastAPI app. The client uses `mode: "cors"`.
+- Timeouts: Requests time out after 60 seconds. For large files or long parsing, try again or simplify the document.
+- Verify the API URL in the header matches your backend.
 
 ## Notes
 - Accepted upload types: .pdf and .docx
