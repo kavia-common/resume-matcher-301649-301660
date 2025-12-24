@@ -45,6 +45,34 @@ function App() {
 
   const canSubmit = !!file && jobDescription.trim().length > 0 && !loading;
 
+  // Converts any error-like input to a friendly string; includes serialized details if available
+  const formatErrorForDisplay = (err) => {
+    try {
+      if (!err) return 'An unexpected error occurred.';
+      if (err instanceof Error) {
+        // If error has a details object, append a concise JSON snippet
+        const hasDetails = err.details && typeof err.details === 'object' && Object.keys(err.details).length > 0;
+        return hasDetails
+          ? `${err.message}\nDetails: ${JSON.stringify(err.details)}`
+          : err.message;
+      }
+      if (typeof err === 'string') return err;
+      if (typeof err === 'object') {
+        const msg = typeof err.message === 'string'
+          ? err.message
+          : typeof err.detail === 'string'
+            ? err.detail
+            : 'An error occurred.';
+        const { message: _m, detail: _d, ...rest } = err;
+        const hasRest = Object.keys(rest || {}).length > 0;
+        return hasRest ? `${msg}\nDetails: ${JSON.stringify(rest)}` : msg;
+      }
+      return String(err);
+    } catch {
+      return 'An unexpected error occurred.';
+    }
+  };
+
   const onSubmit = async () => {
     if (!canSubmit) return;
     setError(null);
@@ -71,10 +99,9 @@ function App() {
         feedback: result.feedback || [],
       });
     } catch (e) {
-      const message =
-        (e && e.message) || 'An unexpected error occurred while contacting the server.';
+      const base = formatErrorForDisplay(e) || 'An unexpected error occurred while contacting the server.';
       const guidance = ' If this persists, confirm the backend is running at the API URL above and that CORS is enabled.';
-      setError(message + guidance);
+      setError(`${base}${guidance}`);
     } finally {
       setLoading(false);
       abortControllerRef.current = null;

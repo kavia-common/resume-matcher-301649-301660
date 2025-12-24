@@ -33,6 +33,28 @@ function detectBaseUrl() {
 
 const BASE_URL = detectBaseUrl();
 
+// Normalize any unknown value into a user-friendly error object
+function normalizeError(err, fallbackMessage) {
+  // If it's already an Error, use its message
+  if (err instanceof Error) {
+    return { message: err.message, details: undefined };
+  }
+  // If it looks like a fetch Response error payload
+  if (err && typeof err === 'object') {
+    const message = typeof err.message === 'string'
+      ? err.message
+      : typeof err.detail === 'string'
+        ? err.detail
+        : fallbackMessage || 'An unexpected error occurred.';
+    // capture other keys for details
+    const { message: _m, detail: _d, ...rest } = err;
+    const hasDetails = rest && Object.keys(rest).length > 0;
+    return { message, details: hasDetails ? rest : undefined };
+  }
+  // Primitive
+  return { message: String(err || fallbackMessage || 'An unexpected error occurred.'), details: undefined };
+}
+
 // PUBLIC_INTERFACE
 export async function postMatch({ file, jobDescription, signal, timeoutMs = 60000 }) {
   /** Sends resume file and job description to backend /match and returns parsed JSON.
@@ -97,25 +119,35 @@ export async function postMatch({ file, jobDescription, signal, timeoutMs = 6000
 
   const contentType = res.headers.get('content-type') || '';
   if (!res.ok) {
+    let payload;
     let message = `Request failed with status ${res.status}`;
     if (contentType.includes('application/json')) {
       try {
-        const err = await res.json();
-        if (err && (err.detail || err.message)) {
-          message = err.detail || err.message;
-        }
+        payload = await res.json();
+        const norm = normalizeError(payload, message);
+        message = norm.message || message;
       } catch {
         // ignore parse errors
       }
     } else {
       try {
-        message = await res.text();
+        const txt = await res.text();
+        if (txt) {
+          message = txt;
+        }
       } catch {
         // ignore
       }
     }
     const error = new Error(message);
     error.status = res.status;
+    // attach safe details if any
+    if (payload && typeof payload === 'object') {
+      const { message: _m, detail: _d, ...rest } = payload;
+      if (Object.keys(rest).length > 0) {
+        error.details = rest;
+      }
+    }
     throw error;
   }
 

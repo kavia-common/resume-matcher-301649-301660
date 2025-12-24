@@ -13,6 +13,28 @@ import React from 'react';
  *   } | null
  */
 export default function ResultsCard({ loading, error, data }) {
+  const renderError = (err) => {
+    if (!err) return null;
+    if (typeof err === 'string') return err;
+    if (err instanceof Error) {
+      const details =
+        err.details && typeof err.details === 'object' && Object.keys(err.details).length > 0
+          ? `\nDetails: ${JSON.stringify(err.details)}`
+          : '';
+      return `${err.message}${details}`;
+    }
+    if (typeof err === 'object') {
+      const msg =
+        (typeof err.message === 'string' && err.message) ||
+        (typeof err.detail === 'string' && err.detail) ||
+        'An error occurred.';
+      const { message: _m, detail: _d, ...rest } = err;
+      const details = Object.keys(rest || {}).length > 0 ? `\nDetails: ${JSON.stringify(rest)}` : '';
+      return `${msg}${details}`;
+    }
+    return String(err);
+  };
+
   return (
     <div className="card">
       <div className="card-header">Results</div>
@@ -25,7 +47,7 @@ export default function ResultsCard({ loading, error, data }) {
 
         {!loading && error && (
           <div className="status status-error" role="alert">
-            {error}
+            {renderError(error)}
           </div>
         )}
 
